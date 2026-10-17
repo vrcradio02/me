@@ -1,0 +1,1642 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#080b16">
+    <meta name="description" content="VRCstudio : programmation, projets numériques, expériences interactives et créativité.">
+    <meta name="author" content="VRCstudio">
+
+    <title>VRCstudio — Digital Universe</title>
+
+    <style>
+        :root {
+            --bg: #080b16;
+            --panel: rgba(18, 25, 45, .76);
+            --text: #f5f7ff;
+            --muted: #aab6d3;
+            --cyan: #00e5ff;
+            --purple: #9b72ff;
+            --green: #55ffab;
+            --border: rgba(140, 160, 220, .19);
+            --glow: rgba(0, 229, 255, .16);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            scroll-padding-top: 90px;
+        }
+
+        body {
+            font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont,
+                "Segoe UI", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+            transition: background .35s, color .35s;
+        }
+
+        body.light {
+            --bg: #edf2ff;
+            --panel: rgba(255, 255, 255, .8);
+            --text: #11182d;
+            --muted: #56617c;
+            --border: rgba(45, 60, 110, .18);
+            --glow: rgba(80, 100, 255, .13);
+        }
+
+        a {
+            color: inherit;
+        }
+
+        button, input {
+            font: inherit;
+        }
+
+        button:focus-visible,
+        a:focus-visible,
+        input:focus-visible {
+            outline: 2px solid var(--cyan);
+            outline-offset: 5px;
+        }
+
+        ::selection {
+            background: var(--cyan);
+            color: #080b16;
+        }
+
+        /* =========================
+           CHARGEMENT CINÉMATIQUE
+        ========================= */
+
+        #loader {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: #060914;
+            transition: opacity .8s ease, visibility .8s ease;
+            overflow: hidden;
+        }
+
+        #loader.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .loader-grid {
+            position: absolute;
+            inset: -50%;
+            background-image:
+                linear-gradient(rgba(0, 229, 255, .055) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 229, 255, .055) 1px, transparent 1px);
+            background-size: 45px 45px;
+            transform: perspective(450px) rotateX(55deg);
+            animation: gridMove 8s linear infinite;
+            mask-image: linear-gradient(transparent, black, transparent);
+            pointer-events: none;
+        }
+
+        .loader-logo {
+            z-index: 1;
+            font-size: clamp(34px, 8vw, 58px);
+            font-weight: 900;
+            letter-spacing: -2px;
+            color: #fff;
+            text-shadow: 0 0 35px var(--cyan);
+            animation: logoPulse 2s ease-in-out infinite;
+        }
+
+        .loader-logo span {
+            color: var(--cyan);
+        }
+
+        .loader-ring {
+            width: 88px;
+            height: 88px;
+            margin: 32px 0 22px;
+            border: 2px solid #202a46;
+            border-top-color: var(--cyan);
+            border-right-color: var(--purple);
+            border-radius: 50%;
+            position: relative;
+            animation: spin 1s linear infinite;
+            box-shadow: 0 0 25px rgba(0, 229, 255, .08);
+        }
+
+        .loader-ring::after {
+            content: "";
+            position: absolute;
+            inset: 12px;
+            border: 2px dashed rgba(155, 114, 255, .7);
+            border-radius: 50%;
+            animation: spin 4s linear infinite reverse;
+        }
+
+        .loading-text {
+            color: var(--cyan);
+            font-family: monospace;
+            font-size: 12px;
+            letter-spacing: 3px;
+            text-align: center;
+            min-height: 18px;
+        }
+
+        .loading-bar {
+            width: min(280px, 75vw);
+            height: 4px;
+            border-radius: 20px;
+            margin-top: 22px;
+            overflow: hidden;
+            background: #1c2540;
+        }
+
+        .loading-progress {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--cyan), var(--purple));
+            box-shadow: 0 0 18px var(--cyan);
+            transition: width .12s linear;
+        }
+
+        .loading-percent {
+            margin-top: 12px;
+            color: #8895b6;
+            font: 12px monospace;
+        }
+
+        .loader-footer {
+            position: absolute;
+            bottom: 28px;
+            color: #586581;
+            font: 10px monospace;
+            letter-spacing: 2px;
+        }
+
+        /* =========================
+           FOND ET PARTICULES
+        ========================= */
+
+        #particles {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -2;
+            pointer-events: none;
+        }
+
+        .background-glow {
+            position: fixed;
+            width: 440px;
+            height: 440px;
+            border-radius: 50%;
+            background: #542bca;
+            filter: blur(150px);
+            opacity: .22;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .ambient-glow {
+            position: fixed;
+            width: 300px;
+            height: 300px;
+            right: -180px;
+            bottom: 0;
+            background: var(--cyan);
+            filter: blur(150px);
+            opacity: .09;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* =========================
+           NAVIGATION
+        ========================= */
+
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            padding: 20px 7%;
+            border-bottom: 1px solid var(--border);
+            background: rgba(8, 11, 22, .78);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+
+        body.light header {
+            background: rgba(237, 242, 255, .8);
+        }
+
+        .logo {
+            font-size: 23px;
+            font-weight: 900;
+            text-decoration: none;
+            letter-spacing: -1px;
+            white-space: nowrap;
+            color: var(--cyan);
+        }
+
+        .logo span {
+            color: var(--text);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .status {
+            font-size: 11px;
+            color: var(--green);
+            white-space: nowrap;
+        }
+
+        .status::before {
+            content: "";
+            display: inline-block;
+            width: 7px;
+            height: 7px;
+            background: var(--green);
+            border-radius: 50%;
+            margin-right: 8px;
+            box-shadow: 0 0 12px var(--green);
+            animation: blink 2s infinite;
+        }
+
+        .nav-link {
+            color: var(--muted);
+            font-size: 13px;
+            text-decoration: none;
+            transition: color .2s;
+        }
+
+        .nav-link:hover {
+            color: var(--cyan);
+        }
+
+        .icon-button {
+            display: inline-grid;
+            place-items: center;
+            width: 38px;
+            height: 38px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--panel);
+            color: var(--text);
+            cursor: pointer;
+            transition: .25s;
+        }
+
+        .icon-button:hover {
+            border-color: var(--cyan);
+            transform: translateY(-2px);
+        }
+
+        /* =========================
+           CONTENU PRINCIPAL
+        ========================= */
+
+        main {
+            max-width: 1120px;
+            margin: auto;
+            padding: 100px 25px 40px;
+        }
+
+        .hero {
+            text-align: center;
+            animation: appear 1s ease both;
+        }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 16px;
+            border: 1px solid rgba(155, 114, 255, .35);
+            border-radius: 30px;
+            color: #c7b6ff;
+            background: rgba(23, 21, 43, .7);
+            font-size: 11px;
+            letter-spacing: 2px;
+            margin-bottom: 28px;
+        }
+
+        h1 {
+            font-size: clamp(48px, 9vw, 100px);
+            line-height: 1.03;
+            margin-bottom: 25px;
+            letter-spacing: -5px;
+        }
+
+        h1 span {
+            background: linear-gradient(100deg, var(--cyan), #8b9dff, var(--purple));
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: gradientFlow 5s linear infinite;
+        }
+
+        .description {
+            max-width: 650px;
+            margin: 0 auto;
+            color: var(--muted);
+            font-size: 17px;
+            line-height: 1.9;
+        }
+
+        .buttons {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-top: 35px;
+        }
+
+        .button {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            gap: 9px;
+            padding: 15px 23px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 750;
+            transition: transform .25s, box-shadow .25s, border-color .25s;
+        }
+
+        .primary {
+            color: #080b16;
+            background: linear-gradient(100deg, var(--cyan), #9daaff);
+            box-shadow: 0 0 25px rgba(0, 229, 255, .12);
+        }
+
+        .secondary {
+            color: var(--text);
+            border: 1px solid var(--border);
+            background: var(--panel);
+        }
+
+        .button:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 35px rgba(0, 229, 255, .15);
+        }
+
+        .secondary:hover {
+            border-color: var(--cyan);
+        }
+
+        .hero-meta {
+            display: flex;
+            justify-content: center;
+            gap: 22px;
+            flex-wrap: wrap;
+            margin-top: 30px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .hero-meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        /* =========================
+           BARRE DE RECHERCHE
+        ========================= */
+
+        .search-wrap {
+            max-width: 550px;
+            margin: 75px auto 0;
+            position: relative;
+        }
+
+        .search-wrap label {
+            display: block;
+            margin-bottom: 10px;
+            color: var(--muted);
+            font-size: 12px;
+            text-align: left;
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 16px;
+            min-height: 55px;
+            border: 1px solid var(--border);
+            border-radius: 15px;
+            background: var(--panel);
+            backdrop-filter: blur(15px);
+            transition: border-color .25s, box-shadow .25s;
+        }
+
+        .search-box:focus-within {
+            border-color: var(--cyan);
+            box-shadow: 0 0 25px var(--glow);
+        }
+
+        .search-box span {
+            color: var(--cyan);
+        }
+
+        #projectSearch {
+            width: 100%;
+            min-width: 0;
+            border: 0;
+            outline: 0;
+            color: var(--text);
+            background: transparent;
+            font-size: 14px;
+        }
+
+        #projectSearch::placeholder {
+            color: var(--muted);
+        }
+
+        .search-hint {
+            display: block;
+            margin-top: 9px;
+            color: var(--muted);
+            font-size: 11px;
+            text-align: left;
+        }
+
+        /* =========================
+           CARTES PROJETS
+        ========================= */
+
+        .section-heading {
+            display: flex;
+            align-items: end;
+            justify-content: space-between;
+            gap: 20px;
+            margin: 100px 0 28px;
+        }
+
+        .section-heading h2 {
+            font-size: clamp(26px, 4vw, 35px);
+            letter-spacing: -1px;
+        }
+
+        .section-heading p {
+            margin-top: 8px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .section-count {
+            color: var(--cyan);
+            font: 12px monospace;
+            white-space: nowrap;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            position: relative;
+            overflow: hidden;
+            padding: 28px;
+            min-height: 250px;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            backdrop-filter: blur(16px);
+            transition: transform .3s, border-color .3s, box-shadow .3s;
+        }
+
+        .card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--cyan), var(--purple), transparent);
+            opacity: 0;
+            transition: opacity .3s;
+        }
+
+        .card:hover {
+            transform: translateY(-7px);
+            border-color: rgba(0, 229, 255, .55);
+            box-shadow: 0 20px 55px var(--glow);
+        }
+
+        .card:hover::before {
+            opacity: 1;
+        }
+
+        .card-icon {
+            display: grid;
+            place-items: center;
+            width: 55px;
+            height: 55px;
+            margin-bottom: 23px;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            background: rgba(0, 229, 255, .06);
+            font-size: 27px;
+        }
+
+        .card h3 {
+            margin-bottom: 12px;
+            font-size: 20px;
+        }
+
+        .card p {
+            color: var(--muted);
+            line-height: 1.8;
+            font-size: 14px;
+            margin-bottom: 23px;
+        }
+
+        .card a {
+            display: inline-block;
+            color: var(--cyan);
+            font-size: 13px;
+            font-weight: 750;
+            text-decoration: none;
+        }
+
+        .card a:hover {
+            text-decoration: underline;
+        }
+
+        .card[hidden] {
+            display: none;
+        }
+
+        #noResults {
+            display: none;
+            padding: 30px;
+            color: var(--muted);
+            text-align: center;
+        }
+
+        /* =========================
+           SECTION OUTILS
+        ========================= */
+
+        .tool-panel {
+            margin-top: 85px;
+            padding: 30px;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            background: var(--panel);
+            backdrop-filter: blur(15px);
+        }
+
+        .tool-panel h2 {
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+
+        .tool-panel > p {
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.8;
+        }
+
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+            gap: 14px;
+            margin-top: 25px;
+        }
+
+        .tool-button {
+            min-height: 48px;
+            padding: 12px 15px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: rgba(100, 120, 180, .07);
+            color: var(--text);
+            cursor: pointer;
+            text-align: left;
+            transition: .25s;
+        }
+
+        .tool-button:hover {
+            border-color: var(--cyan);
+            transform: translateY(-2px);
+        }
+
+        .tool-output {
+            min-height: 25px;
+            margin-top: 18px;
+            color: var(--cyan);
+            font-size: 13px;
+            overflow-wrap: anywhere;
+        }
+
+        /* =========================
+           CITATION ALÉATOIRE
+        ========================= */
+
+        .quote-card {
+            margin-top: 22px;
+            padding: 24px;
+            border-left: 3px solid var(--purple);
+            border-radius: 0 14px 14px 0;
+            background: rgba(155, 114, 255, .06);
+        }
+
+        .quote-label {
+            margin-bottom: 12px;
+            color: var(--purple);
+            font-size: 10px;
+            letter-spacing: 2px;
+        }
+
+        #quoteText {
+            color: var(--text);
+            font-size: 15px;
+            line-height: 1.8;
+        }
+
+        #quoteAuthor {
+            display: block;
+            margin-top: 10px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        /* =========================
+           FOOTER ET RETOUR EN HAUT
+        ========================= */
+
+        footer {
+            text-align: center;
+            padding: 35px 20px;
+            margin-top: 90px;
+            border-top: 1px solid var(--border);
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 2;
+        }
+
+        footer a {
+            color: var(--cyan);
+            text-decoration: none;
+        }
+
+        .footer-version {
+            display: block;
+            margin-top: 8px;
+            color: #66718e;
+            font-family: monospace;
+            font-size: 10px;
+        }
+
+        #backTop {
+            position: fixed;
+            right: 22px;
+            bottom: 22px;
+            z-index: 90;
+            width: 45px;
+            height: 45px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: var(--panel);
+            color: var(--cyan);
+            font-size: 20px;
+            cursor: pointer;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(10px);
+            transition: .25s;
+        }
+
+        #backTop.visible {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        /* =========================
+           NOTIFICATIONS
+        ========================= */
+
+        #toast {
+            position: fixed;
+            left: 50%;
+            bottom: 25px;
+            z-index: 11000;
+            max-width: calc(100% - 30px);
+            padding: 13px 19px;
+            border: 1px solid rgba(0, 229, 255, .4);
+            border-radius: 13px;
+            background: #10182b;
+            color: #fff;
+            font-size: 13px;
+            text-align: center;
+            box-shadow: 0 10px 40px #0005;
+            opacity: 0;
+            visibility: hidden;
+            transform: translate(-50%, 15px);
+            transition: .25s;
+        }
+
+        #toast.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translate(-50%, 0);
+        }
+
+        /* =========================
+           MODE MATRIX
+        ========================= */
+
+        body.matrix {
+            --cyan: #00ff66;
+            --purple: #00bb44;
+            --green: #00ff66;
+            --glow: rgba(0, 255, 80, .16);
+        }
+
+        body.matrix h1 span {
+            background: linear-gradient(90deg, #00ff66, #baffc9);
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+
+        /* =========================
+           ANIMATIONS
+        ========================= */
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes logoPulse {
+            50% { opacity: .72; transform: scale(1.035); }
+        }
+
+        @keyframes blink {
+            50% { opacity: .4; }
+        }
+
+        @keyframes appear {
+            from { opacity: 0; transform: translateY(25px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes gradientFlow {
+            to { background-position: 200% center; }
+        }
+
+        @keyframes gridMove {
+            to { background-position: 0 45px; }
+        }
+
+        /* =========================
+           RESPONSIVE
+        ========================= */
+
+        @media (max-width: 700px) {
+            header {
+                padding: 16px 5%;
+                gap: 10px;
+            }
+
+            .logo {
+                font-size: 19px;
+            }
+
+            .header-right {
+                gap: 10px;
+            }
+
+            .nav-link {
+                display: none;
+            }
+
+            main {
+                padding: 75px 18px 30px;
+            }
+
+            h1 {
+                letter-spacing: -2px;
+            }
+
+            .description {
+                font-size: 15px;
+            }
+
+            .section-heading {
+                margin-top: 75px;
+            }
+
+            .card {
+                padding: 24px;
+            }
+
+            .tool-panel {
+                padding: 22px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                scroll-behavior: auto !important;
+                animation-duration: .01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: .01ms !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- CHARGEMENT -->
+
+    <div id="loader" role="status" aria-live="polite">
+        <div class="loader-grid"></div>
+
+        <div class="loader-logo">VRC<span>studio</span></div>
+
+        <div class="loader-ring"></div>
+
+        <div class="loading-text" id="loadingText">
+            INITIALISATION DU SYSTÈME...
+        </div>
+
+        <div class="loading-bar">
+            <div class="loading-progress" id="loadingProgress"></div>
+        </div>
+
+        <div class="loading-percent" id="loadingPercent">0 %</div>
+
+        <div class="loader-footer">VRCSTUDIO OS // VERSION 2.0</div>
+    </div>
+
+    <!-- FOND -->
+
+    <canvas id="particles" aria-hidden="true"></canvas>
+    <div class="background-glow"></div>
+    <div class="ambient-glow"></div>
+
+    <!-- NAVIGATION -->
+
+    <header>
+        <a class="logo" href="#" id="logoLink" aria-label="VRCstudio, accueil">
+            VRC<span>studio</span>
+        </a>
+
+        <div class="header-right">
+            <a class="nav-link" href="#projets">Projets</a>
+            <a class="nav-link" href="#outils">Outils</a>
+            <a class="nav-link" href="#contact">Contact</a>
+
+            <div class="status">En ligne</div>
+
+            <button class="icon-button" id="themeButton"
+                    aria-label="Changer de thème" title="Changer de thème">
+                ☀️
+            </button>
+        </div>
+    </header>
+
+    <!-- ACCUEIL -->
+
+    <main>
+        <section class="hero">
+            <div class="tag">✦ PROGRAMMATION · CRÉATIVITÉ · INNOVATION</div>
+
+            <h1>
+                Bienvenue sur<br>
+                <span>VRCstudio</span>
+            </h1>
+
+            <p class="description">
+                Un univers dédié à la programmation, aux projets numériques
+                et aux idées qui prennent vie.
+                Explore mes créations, découvre les outils et rejoins la communauté.
+            </p>
+
+            <div class="buttons">
+                <a class="button primary"
+                   href="https://vrcstudio.freeflarum.com"
+                   target="_blank" rel="noopener noreferrer">
+                    Rejoindre le forum ↗
+                </a>
+
+                <a class="button secondary"
+                   href="https://vrcradio02.github.io/infinite-vrcraft"
+                   target="_blank" rel="noopener noreferrer">
+                    Explorer Infinite-VRCraft →
+                </a>
+            </div>
+
+            <div class="hero-meta">
+                <span>⚡ Projets numériques</span>
+                <span>🔒 Navigation sécurisée via HTTPS si disponible</span>
+                <span>💡 Imagination sans limites</span>
+            </div>
+        </section>
+
+        <!-- RECHERCHE -->
+
+        <section class="search-wrap" aria-label="Recherche de projets">
+            <label for="projectSearch">RECHERCHER DANS VRCSTUDIO</label>
+
+            <div class="search-box">
+                <span aria-hidden="true">⌕</span>
+                <input type="search" id="projectSearch"
+                       placeholder="Forum, jeux, contact..."
+                       autocomplete="off">
+                <span aria-hidden="true">⌘ K</span>
+            </div>
+
+            <span class="search-hint">
+                Astuce : appuie sur Ctrl + K pour accéder rapidement à la recherche.
+            </span>
+        </section>
+
+        <!-- PROJETS -->
+
+        <div class="section-heading" id="projets">
+            <div>
+                <h2>Mes projets<span style="color:var(--cyan)">.</span></h2>
+                <p>Des idées transformées en expériences numériques.</p>
+            </div>
+            <div class="section-count" id="projectCount">03 PROJETS</div>
+        </div>
+
+        <section class="cards" id="projectCards">
+
+            <article class="card" data-search="forum communauté discussion programmation entraide">
+                <div class="card-icon">💬</div>
+                <h3>Le forum</h3>
+                <p>
+                    Retrouve VRCstudio, partage tes idées, échange avec la
+                    communauté et découvre de nouvelles discussions.
+                </p>
+                <a href="https://vrcstudio.freeflarum.com"
+                   target="_blank" rel="noopener noreferrer">
+                    Visiter le forum →
+                </a>
+            </article>
+
+            <article class="card" data-search="infinite vrcraft jeu gaming exploration projet">
+                <div class="card-icon">🎮</div>
+                <h3>Infinite-VRCraft</h3>
+                <p>
+                    Découvre mon projet interactif et explore une création
+                    numérique imaginée pour te divertir.
+                </p>
+                <a href="https://vrcradio02.github.io/infinite-vrcraft"
+                   target="_blank" rel="noopener noreferrer">
+                    Lancer le projet →
+                </a>
+            </article>
+
+            <article class="card" data-search="contact email aide question idée collaboration">
+                <div class="card-icon">✉️</div>
+                <h3>Me contacter</h3>
+                <p>
+                    Une question, une idée ou une proposition de collaboration ?
+                    Écris-moi directement par e-mail.
+                </p>
+                <a href="mailto:vrc.radio02@tutamail.com">
+                    Envoyer un e-mail →
+                </a>
+            </article>
+
+        </section>
+
+        <div id="noResults">
+            Aucun projet trouvé. Essaie un autre mot-clé !
+        </div>
+
+        <!-- OUTILS UTILES -->
+
+        <section class="tool-panel" id="outils">
+            <h2>Le mini centre de contrôle<span style="color:var(--cyan)">.</span></h2>
+            <p>
+                Quelques outils pratiques directement intégrés au site.
+                Aucun compte ni installation nécessaire.
+            </p>
+
+            <div class="tools-grid">
+                <button class="tool-button" id="copySite">
+                    🔗 Copier l'adresse du site
+                </button>
+
+                <button class="tool-button" id="randomQuote">
+                    💡 Inspiration aléatoire
+                </button>
+
+                <button class="tool-button" id="focusButton">
+                    🎯 Mode concentration
+                </button>
+
+                <button class="tool-button" id="matrixButton">
+                    🟢 Activer le mode Matrix
+                </button>
+
+                <button class="tool-button" id="resetButton">
+                    ↺ Réinitialiser l'apparence
+                </button>
+            </div>
+
+            <div class="tool-output" id="toolOutput" aria-live="polite"></div>
+
+            <div class="quote-card">
+                <div class="quote-label">✦ PENSÉE DU MOMENT</div>
+                <p id="quoteText">
+                    Le meilleur moyen de prévoir le futur, c'est de le créer.
+                </p>
+                <span id="quoteAuthor">— Inspiration développeur</span>
+            </div>
+        </section>
+    </main>
+
+    <!-- FOOTER -->
+
+    <footer id="contact">
+        <p>© <span id="year"></span> VRCstudio — Créé avec passion.</p>
+        <p>
+            <a href="mailto:vrc.radio02@tutamail.com">Me contacter</a>
+            ·
+            <a href="https://vrcstudio.freeflarum.com"
+               target="_blank" rel="noopener noreferrer">Communauté</a>
+            ·
+            <a href="#projets">Mes projets</a>
+        </p>
+        <span class="footer-version">
+            VRCSTUDIO WEB // BUILD 2.0 // MADE WITH ☕ AND CODE
+        </span>
+    </footer>
+
+    <!-- RETOUR EN HAUT -->
+
+    <button id="backTop" aria-label="Retour en haut" title="Retour en haut">
+        ↑
+    </button>
+
+    <!-- NOTIFICATIONS -->
+
+    <div id="toast" role="status" aria-live="polite"></div>
+
+    <script>
+        "use strict";
+
+        /* =========================
+           OUTILS GÉNÉRAUX
+        ========================= */
+
+        const $ = (selector) => document.querySelector(selector);
+
+        const toast = $("#toast");
+        let toastTimer;
+
+        function notify(message) {
+            toast.textContent = message;
+            toast.classList.add("show");
+
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => {
+                toast.classList.remove("show");
+            }, 2600);
+        }
+
+        /* =========================
+           CHARGEMENT CINÉMATIQUE
+        ========================= */
+
+        const loader = $("#loader");
+        const loadingProgress = $("#loadingProgress");
+        const loadingPercent = $("#loadingPercent");
+        const loadingText = $("#loadingText");
+
+        const loadingMessages = [
+            "INITIALISATION DU SYSTÈME...",
+            "CHARGEMENT DES MODULES...",
+            "CONNEXION À L'UNIVERS VRC...",
+            "OPTIMISATION DE L'INTERFACE...",
+            "PRESQUE PRÊT..."
+        ];
+
+        const reducedMotion = window.matchMedia(
+            "(prefers-reduced-motion: reduce)"
+        ).matches;
+
+        const startTime = performance.now();
+        const minimumLoadingTime = reducedMotion ? 500 : 2800;
+        let pageLoaded = document.readyState === "complete";
+        let loaderFinished = false;
+
+        window.addEventListener("load", () => {
+            pageLoaded = true;
+            finishLoadingWhenReady();
+        });
+
+        function finishLoadingWhenReady() {
+            if (loaderFinished || !pageLoaded) return;
+
+            const elapsed = performance.now() - startTime;
+            const remaining = Math.max(0, minimumLoadingTime - elapsed);
+
+            setTimeout(() => {
+                if (loaderFinished || !pageLoaded) return;
+
+                loaderFinished = true;
+                loadingProgress.style.width = "100%";
+                loadingPercent.textContent = "100 %";
+                loadingText.textContent = "SYSTÈME OPÉRATIONNEL";
+
+                setTimeout(() => {
+                    loader.classList.add("hidden");
+                }, reducedMotion ? 0 : 350);
+            }, remaining);
+        }
+
+        let progress = 0;
+
+        const progressTimer = setInterval(() => {
+            if (loaderFinished) {
+                clearInterval(progressTimer);
+                return;
+            }
+
+            // La progression ralentit à l'approche de 95 %.
+            // Le 100 % n'arrive qu'une fois la page prête.
+            const increment = progress < 45 ? 3.2 :
+                             progress < 75 ? 1.7 :
+                             progress < 90 ? 0.6 : 0.15;
+
+            progress = Math.min(95, progress + increment);
+
+            loadingProgress.style.width = progress + "%";
+            loadingPercent.textContent = Math.floor(progress) + " %";
+
+            const messageIndex = Math.min(
+                loadingMessages.length - 1,
+                Math.floor(progress / 20)
+            );
+
+            loadingText.textContent = loadingMessages[messageIndex];
+        }, 100);
+
+        finishLoadingWhenReady();
+
+        /* =========================
+           ANNÉE AUTOMATIQUE
+        ========================= */
+
+        $("#year").textContent = new Date().getFullYear();
+
+        /* =========================
+           THÈME CLAIR / SOMBRE
+        ========================= */
+
+        const themeButton = $("#themeButton");
+
+        themeButton.addEventListener("click", () => {
+            document.body.classList.toggle("light");
+
+            const isLight = document.body.classList.contains("light");
+
+            themeButton.textContent = isLight ? "🌙" : "☀️";
+            themeButton.title = isLight
+                ? "Passer au thème sombre"
+                : "Passer au thème clair";
+
+            notify(isLight ? "Thème clair activé ☀️" : "Thème sombre activé 🌙");
+        });
+
+        /* =========================
+           RECHERCHE DE PROJETS
+        ========================= */
+
+        const projectSearch = $("#projectSearch");
+        const cards = [...document.querySelectorAll(".card")];
+        const noResults = $("#noResults");
+        const projectCount = $("#projectCount");
+
+        function searchProjects() {
+            const query = projectSearch.value.trim().toLocaleLowerCase("fr");
+            let visible = 0;
+
+            cards.forEach(card => {
+                const text = (
+                    card.innerText + " " + card.dataset.search
+                ).toLocaleLowerCase("fr");
+
+                const match = text.includes(query);
+
+                card.hidden = !match;
+
+                if (match) visible++;
+            });
+
+            noResults.style.display = visible === 0 ? "block" : "none";
+            projectCount.textContent =
+                String(visible).padStart(2, "0") + " PROJET" +
+                (visible > 1 ? "S" : "");
+        }
+
+        projectSearch.addEventListener("input", searchProjects);
+
+        document.addEventListener("keydown", event => {
+            if (
+                (event.ctrlKey || event.metaKey) &&
+                event.key.toLowerCase() === "k"
+            ) {
+                event.preventDefault();
+                projectSearch.focus();
+                projectSearch.select();
+            }
+
+            if (event.key === "Escape" &&
+                document.activeElement === projectSearch) {
+                projectSearch.value = "";
+                searchProjects();
+                projectSearch.blur();
+            }
+        });
+
+        /* =========================
+           COPIER LE LIEN DU SITE
+        ========================= */
+
+        $("#copySite").addEventListener("click", async () => {
+            const url = window.location.href;
+
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(url);
+                } else {
+                    const temporaryInput = document.createElement("textarea");
+                    temporaryInput.value = url;
+                    temporaryInput.style.position = "fixed";
+                    temporaryInput.style.opacity = "0";
+                    document.body.appendChild(temporaryInput);
+                    temporaryInput.select();
+
+                    const copied = document.execCommand("copy");
+                    temporaryInput.remove();
+
+                    if (!copied) throw new Error("Copie indisponible");
+                }
+
+                notify("Adresse du site copiée ! 🔗");
+                $("#toolOutput").textContent = url;
+            } catch (error) {
+                $("#toolOutput").textContent =
+                    "Copie impossible : " + url;
+                notify("Copie indisponible sur ce navigateur.");
+            }
+        });
+
+        /* =========================
+           CITATIONS
+        ========================= */
+
+        const quotes = [
+            {
+                text: "Le meilleur moyen de prévoir le futur, c'est de le créer.",
+                author: "Inspiration développeur"
+            },
+            {
+                text: "Chaque expert a d'abord été un débutant.",
+                author: "Ralph Waldo Emerson, souvent paraphrasé"
+            },
+            {
+                text: "Une ligne de code à la fois.",
+                author: "La méthode des petits pas"
+            },
+            {
+                text: "Les erreurs sont la preuve que tu essaies.",
+                author: "Inspiration du jour"
+            },
+            {
+                text: "Simple, utile, fonctionnel : c'est déjà une victoire.",
+                author: "Philosophie VRCstudio"
+            },
+            {
+                text: "La créativité commence quand on ose expérimenter.",
+                author: "Inspiration du jour"
+            }
+        ];
+
+        let lastQuoteIndex = -1;
+
+        function changeQuote() {
+            let index;
+
+            do {
+                index = Math.floor(Math.random() * quotes.length);
+            } while (quotes.length > 1 && index === lastQuoteIndex);
+
+            lastQuoteIndex = index;
+
+            $("#quoteText").textContent = quotes[index].text;
+            $("#quoteAuthor").textContent = "— " + quotes[index].author;
+        }
+
+        $("#randomQuote").addEventListener("click", () => {
+            changeQuote();
+            $("#toolOutput").textContent = "Une nouvelle dose d'inspiration ✨";
+        });
+
+        /* =========================
+           MODE CONCENTRATION
+        ========================= */
+
+        let focusMode = false;
+
+        $("#focusButton").addEventListener("click", () => {
+            focusMode = !focusMode;
+
+            const header = document.querySelector("header");
+            const footer = document.querySelector("footer");
+            const search = $(".search-wrap");
+
+            header.style.display = focusMode ? "none" : "flex";
+            footer.style.display = focusMode ? "none" : "block";
+            search.style.display = focusMode ? "none" : "block";
+
+            $("#focusButton").textContent = focusMode
+                ? "↩ Quitter le mode concentration"
+                : "🎯 Mode concentration";
+
+            $("#toolOutput").textContent = focusMode
+                ? "Mode concentration activé. Les distractions ont disparu."
+                : "Mode normal restauré.";
+
+            if (focusMode) {
+                $("#projets").scrollIntoView({ behavior: "smooth" });
+            }
+        });
+
+        /* =========================
+           MODE MATRIX
+        ========================= */
+
+        $("#matrixButton").addEventListener("click", () => {
+            document.body.classList.toggle("matrix");
+
+            const enabled = document.body.classList.contains("matrix");
+
+            $("#matrixButton").textContent = enabled
+                ? "⚪ Désactiver le mode Matrix"
+                : "🟢 Activer le mode Matrix";
+
+            notify(enabled
+                ? "Bienvenue dans la matrice, Neo. 🟢"
+                : "Tu as quitté la matrice.");
+        });
+
+        /* =========================
+           RÉINITIALISATION
+        ========================= */
+
+        $("#resetButton").addEventListener("click", () => {
+            document.body.classList.remove("light", "matrix");
+
+            themeButton.textContent = "☀️";
+            themeButton.title = "Passer au thème clair";
+
+            $("#matrixButton").textContent = "🟢 Activer le mode Matrix";
+
+            if (focusMode) {
+                focusMode = false;
+                document.querySelector("header").style.display = "flex";
+                document.querySelector("footer").style.display = "block";
+                $(".search-wrap").style.display = "block";
+                $("#focusButton").textContent = "🎯 Mode concentration";
+            }
+
+            notify("Apparence réinitialisée.");
+        });
+
+        /* =========================
+           RETOUR EN HAUT
+        ========================= */
+
+        const backTop = $("#backTop");
+
+        window.addEventListener("scroll", () => {
+            backTop.classList.toggle("visible", window.scrollY > 450);
+        }, { passive: true });
+
+        backTop.addEventListener("click", () => {
+            window.scrollTo({
+                top: 0,
+                behavior: reducedMotion ? "auto" : "smooth"
+            });
+        });
+
+        /* =========================
+           PARTICULES LÉGÈRES
+        ========================= */
+
+        const canvas = $("#particles");
+        const ctx = canvas.getContext("2d");
+
+        let particles = [];
+        let animationFrame;
+        let canvasWidth = 0;
+        let canvasHeight = 0;
+
+        function resizeCanvas() {
+            const ratio = Math.min(window.devicePixelRatio || 1, 2);
+
+            canvasWidth = window.innerWidth;
+            canvasHeight = window.innerHeight;
+
+            canvas.width = canvasWidth * ratio;
+            canvas.height = canvasHeight * ratio;
+
+            canvas.style.width = canvasWidth + "px";
+            canvas.style.height = canvasHeight + "px";
+
+            ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+
+            const count = reducedMotion
+                ? 0
+                : Math.min(65, Math.floor(canvasWidth / 18));
+
+            particles = Array.from({ length: count }, () => ({
+                x: Math.random() * canvasWidth,
+                y: Math.random() * canvasHeight,
+                size: Math.random() * 1.8 + .5,
+                speed: Math.random() * .25 + .08,
+                alpha: Math.random() * .5 + .2
+            }));
+        }
+
+        function drawParticles() {
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+            for (const particle of particles) {
+                ctx.beginPath();
+                ctx.arc(
+                    particle.x,
+                    particle.y,
+                    particle.size,
+                    0,
+                    Math.PI * 2
+                );
+
+                ctx.fillStyle = `rgba(0, 229, 255, ${particle.alpha})`;
+                ctx.fill();
+
+                if (!reducedMotion) {
+                    particle.y -= particle.speed;
+
+                    if (particle.y < -5) {
+                        particle.y = canvasHeight + 5;
+                        particle.x = Math.random() * canvasWidth;
+                    }
+                }
+            }
+
+            if (!reducedMotion) {
+                animationFrame = requestAnimationFrame(drawParticles);
+            }
+        }
+
+        resizeCanvas();
+        drawParticles();
+
+        window.addEventListener("resize", () => {
+            cancelAnimationFrame(animationFrame);
+            resizeCanvas();
+            drawParticles();
+        }, { passive: true });
+
+        /* =========================
+           EASTER EGG 1 : KONAMI CODE
+           ↑ ↑ ↓ ↓ ← → ← → B A
+        ========================= */
+
+        const konamiCode = [
+            "ArrowUp", "ArrowUp",
+            "ArrowDown", "ArrowDown",
+            "ArrowLeft", "ArrowRight",
+            "ArrowLeft", "ArrowRight",
+            "b", "a"
+        ];
+
+        let konamiPosition = 0;
+
+        document.addEventListener("keydown", event => {
+            if (event.key === konamiCode[konamiPosition] ||
+                event.key.toLowerCase() === konamiCode[konamiPosition]) {
+                konamiPosition++;
+
+                if (konamiPosition === konamiCode.length) {
+                    konamiPosition = 0;
+                    document.body.classList.toggle("matrix");
+                    notify("🎮 CODE SECRET ACTIVÉ ! Tu as trouvé le Konami Code.");
+                }
+            } else {
+                konamiPosition = event.key === konamiCode[0] ? 1 : 0;
+            }
+        });
+
+        /* =========================
+           EASTER EGG 2 : CLICS SUR LE LOGO
+        ========================= */
+
+        let logoClicks = 0;
+        let logoClickTimer;
+
+        $("#logoLink").addEventListener("click", event => {
+            // Sur l'accueil, le logo déclenche le secret au lieu de recharger.
+            if (window.location.hash === "" || window.location.hash === "#") {
+                event.preventDefault();
+            }
+
+            logoClicks++;
+
+            clearTimeout(logoClickTimer);
+
+            logoClickTimer = setTimeout(() => {
+                logoClicks = 0;
+            }, 1800);
+
+            if (logoClicks >= 5) {
+                logoClicks = 0;
+                notify("👀 Tu as trouvé le secret de VRCstudio...");
+                document.body.classList.toggle("matrix");
+            }
+        });
+
+        /* =========================
+           EASTER EGG 3 : RACCOURCI SECRET
+           Tape "vrc" sur le clavier.
+        ========================= */
+
+        let secretKeys = "";
+
+        document.addEventListener("keydown", event => {
+            if (event.key.length !== 1 || event.ctrlKey || event.metaKey) return;
+
+            secretKeys = (secretKeys + event.key.toLowerCase()).slice(-3);
+
+            if (secretKeys === "vrc") {
+                notify("🚀 VRCstudio : trois lettres, un univers.");
+                secretKeys = "";
+            }
+        });
+
+        /* =========================
+           CONSOLE DES DÉVELOPPEURS
+        ========================= */
+
+        console.log(
+            "%c VRCstudio ",
+            "background:#00e5ff;color:#080b16;font-size:20px;font-weight:bold;padding:8px;"
+        );
+
+        console.log(
+            "%cTu explores le code ? Bienvenue, développeur. 👨‍💻",
+            "color:#9b72ff;font-size:13px;"
+        );
+
+        console.log(
+            "Easter eggs disponibles : Konami Code, 5 clics sur le logo, tape « vrc »."
+        );
+    </script>
+
+</body>
+</html>
